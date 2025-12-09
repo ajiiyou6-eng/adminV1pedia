@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Admin XINNDESAINER — Login</title>
+<meta name="description" content="Admin panel XINNDESAINER — login dengan Firebase Auth (email/password)">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#030014; --muted:#98b4c8; --accent1:#ff00a8; --accent2:#00f0ff; --card:rgba(255,255,255,0.03);
+    --radius:12px; --maxw:1100px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; font-family:Inter,Arial,sans-serif; background:var(--bg); color:#eaf6ff; min-height:100vh}
+  .wrap{max-width:var(--maxw);margin:28px auto;padding:18px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+  .brand{font-weight:800;color:var(--accent2);font-size:20px}
+  .small{color:var(--muted);font-size:13px}
+  /* layout */
+  .loginCard{max-width:420px;margin:28px auto;padding:18px;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03)}
+  input{width:100%;padding:10px;border-radius:8px;border:none;background:rgba(0,0,0,0.45);color:#fff;margin-bottom:10px}
+  button{cursor:pointer;border:none;padding:10px 12px;border-radius:10px;font-weight:700}
+  .primary{background:linear-gradient(90deg,var(--accent2),var(--accent1));color:#02111a}
+  .ghost{background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.06)}
+  .link{background:transparent;color:var(--accent2);border:none}
+  .hidden{display:none}
+  .adminShell{background:linear-gradient(180deg,#071026,#07142a);padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .card{background:var(--card);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+  .list{max-height:320px;overflow:auto;margin-top:8px}
+  .list-item{padding:8px;border-radius:8px;background:rgba(0,0,0,0.25);margin-bottom:8px}
+  label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+  .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+  pre.json{background:rgba(0,0,0,0.55);padding:8px;border-radius:8px;color:var(--muted);overflow:auto}
+  @media(max-width:860px){ .grid{grid-template-columns:1fr} .wrap{padding:12px} }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="brand">XINNDESAINER — Admin</div>
+      <div class="small">Login dengan Email & Password (Firebase Auth)</div>
+    </div>
+    <div id="authStatus" class="small">Status: <span id="statusText">not signed</span></div>
+  </header>
+
+  <!-- LOGIN CARD -->
+  <div id="loginArea" class="loginCard">
+    <h3 style="margin:0 0 8px 0">Masuk Admin</h3>
+    <label>Email</label>
+    <input id="email" type="text" placeholder="admin@contoh.com" autocomplete="username">
+    <label>Password</label>
+    <input id="password" type="password" placeholder="••••••••" autocomplete="current-password">
+
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button id="btnLogin" class="primary">Login</button>
+      <button id="btnCreate" class="ghost">Create admin account</button>
+      <button id="btnDemo" class="ghost">Demo</button>
+    </div>
+
+    <p class="small" style="margin-top:12px;color:var(--muted)">Catatan: Jika kamu belum menambahkan user di Firebase Auth, tombol <b>Create admin account</b> akan mendaftarkan akun lewat client (tidak aman untuk produksi). Setelah akun dibuat, hapus atau nonaktifkan pendaftaran publik di Firebase Console.</p>
+  </div>
+
+  <!-- ADMIN SHELL -->
+  <div id="adminShell" class="adminShell hidden">
+    <div class="topbar">
+      <div>
+        <strong>Admin Panel</strong>
+        <div class="small" id="adminEmailDisplay"></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="btnSignOut" class="ghost">Logout</button>
+        <button id="btnReload" class="ghost">Reload</button>
+      </div>
+    </div>
+
+    <div class="grid" style="margin-bottom:12px">
+      <div class="card">
+        <h4 style="margin:0 0 8px 0">Harga Paket Logo</h4>
+        <label>Express (Rp)</label><input id="priceLogoExp" type="number" placeholder="2000">
+        <label>Basic (Rp)</label><input id="priceLogoBasic" type="number" placeholder="5000">
+        <label>Premium (Rp)</label><input id="priceLogoPrem" type="number" placeholder="7000">
+        <div style="margin-top:8px;display:flex;gap:8px">
+          <button id="saveLogo" class="primary">Simpan</button>
+          <button id="resetLogo" class="ghost">Reset</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4 style="margin:0 0 8px 0">Harga Paket Website</h4>
+        <label>Landing Page (Rp)</label><input id="priceWebLanding" type="number" placeholder="20000">
+        <label>Toko Online (Rp)</label><input id="priceWebToko" type="number" placeholder="50000">
+        <label>Portfolio (Rp)</label><input id="priceWebPort" type="number" placeholder="30000">
+        <label>Company (Rp)</label><input id="priceWebComp" type="number" placeholder="45000">
+        <div style="margin-top:8px;display:flex;gap:8px">
+          <button id="saveWeb" class="primary">Simpan</button>
+          <button id="resetWeb" class="ghost">Reset</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h4 style="margin:0 0 8px 0">Nomor WA & Status Toko</h4>
+        <label>Nomor WA</label><input id="waNumber" type="text" placeholder="6287867162459">
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button id="saveWA" class="primary">Simpan Nomor</button>
+          <button id="testWA" class="ghost">Test</button>
+        </div>
+        <div style="margin-top:12px">
+          <label>Status Toko</label>
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <button id="openStore" class="primary">Buka</button>
+            <button id="closeStore" class="ghost">Tutup</button>
+          </div>
+          <div class="small" style="margin-top:8px">Nilai: <span id="storeVal">-</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4 style="margin:0 0 8px 0">Portfolio</h4>
+        <label>URL Gambar</label><input id="portfolioUrl" type="text" placeholder="https://...jpg">
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button id="addPortfolio" class="primary">Tambah</button>
+          <button id="clearPortfolio" class="ghost">Hapus Semua</button>
+        </div>
+        <div class="list" id="portfolioList"></div>
+      </div>
+    </div>
+
+    <div style="margin-top:12px" class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><strong>Orders</strong><div class="small">Orders dari node `orders` dan `ordersWebsite`</div></div>
+        <div style="display:flex;gap:8px">
+          <button id="exportOrders" class="ghost">Export JSON</button>
+          <button id="clearOrders" class="ghost">Hapus Semua</button>
+        </div>
+      </div>
+      <div class="list" id="ordersList" style="margin-top:12px"></div>
+    </div>
+
+    <div style="margin-top:12px" class="card">
+      <strong>Debug / JSON Preview</strong>
+      <pre id="debugJson" class="json" style="height:160px">—</pre>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase libs -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+/* ====== CONFIG FIREBASE (pakai milikmu) ====== */
+const firebaseConfig = {
+  apiKey: "AIzaSyB4L9CUFN049AytK8b3xxT-qC7WPVcagOw",
+  authDomain: "xinndesainer-web.firebaseapp.com",
+  databaseURL: "https://xinndesainer-web-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "xinndesainer-web",
+  storageBucket: "xinndesainer-web.firebasestorage.app",
+  messagingSenderId: "149928716168",
+  appId: "1:149928716168:web:80e99e60fb8531f0e4bc3d",
+  measurementId: "G-1GWM4KV6T2"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+
+/* ====== HELPERS ====== */
+const $ = id => document.getElementById(id);
+function show(el){ el.classList.remove('hidden'); }
+function hide(el){ el.classList.add('hidden'); }
+function isDemo(){ return localStorage.getItem('xin_admin') === '0'; }
+
+/* ====== AUTH UI ====== */
+const loginArea = $('loginArea');
+const adminShell = $('adminShell');
+const statusText = $('statusText');
+const adminEmailDisplay = $('adminEmailDisplay');
+
+$('btnLogin').addEventListener('click', ()=> {
+  const email = $('email').value.trim();
+  const pass = $('password').value;
+  if(!email || !pass) return alert('Isi email & password');
+  auth.signInWithEmailAndPassword(email, pass)
+    .then(()=>{ localStorage.setItem('xin_admin','1'); })
+    .catch(e=>{ alert('Login gagal: '+e.message); console.error(e); });
+});
+
+// create account (client-side) — only for quick setup (NOT for production)
+$('btnCreate').addEventListener('click', ()=> {
+  const email = $('email').value.trim();
+  const pass = $('password').value;
+  if(!email || !pass) return alert('Isi email & password untuk create');
+  if(!confirm('Buat akun admin baru dengan email ini? (client-side create — non-aman)')) return;
+  auth.createUserWithEmailAndPassword(email, pass)
+    .then(u=>{ alert('Akun dibuat. Silakan login.'); })
+    .catch(e=>{ alert('Gagal membuat akun: '+e.message); console.error(e); });
+});
+
+// demo mode (read-only)
+$('btnDemo').addEventListener('click', ()=> {
+  localStorage.setItem('xin_admin','0'); // demo
+  // show admin shell but with isDemo restrictions
+  showAdminShell(true);
+});
+
+$('btnSignOut').addEventListener('click', ()=> {
+  auth.signOut().then(()=>{ localStorage.removeItem('xin_admin'); location.reload(); });
+});
+$('btnReload').addEventListener('click', ()=> location.reload());
+
+/* ====== Auth state listener ====== */
+auth.onAuthStateChanged(user=>{
+  if(user){
+    // signed in
+    statusText.textContent = 'signed in';
+    adminEmailDisplay.textContent = user.email || '';
+    localStorage.setItem('xin_admin','1');
+    showAdminShell(false);
+  } else {
+    // not signed
+    if(localStorage.getItem('xin_admin') === '0'){
+      // demo previously set
+      showAdminShell(true);
+    } else {
+      statusText.textContent = 'not signed';
+      hide(adminShell);
+      show(loginArea);
+    }
+  }
+});
+
+/* ====== SHOW ADMIN SHELL ====== */
+function showAdminShell(demo=false){
+  hide(loginArea);
+  show(adminShell);
+  $('statusText').textContent = demo ? 'demo' : 'admin';
+  if(demo) adminEmailDisplay.textContent = 'DEMO MODE';
+  // start listeners after shell visible
+  startListeners();
+}
+
+/* ====== LISTEN & RENDER ====== */
+function startListeners(){
+  // logo prices
+  db.ref('web/harga').on('value', snap=>{
+    const h = snap.val() || {express:"2000", basic:"5000", premium:"7000"};
+    $('priceLogoExp').value = h.express || '';
+    $('priceLogoBasic').value = h.basic || '';
+    $('priceLogoPrem').value = h.premium || '';
+  });
+
+  // web prices
+  db.ref('web/hargaWeb').on('value', snap=>{
+    const w = snap.val() || {landing:"20000", toko:"50000", portfolio:"30000", company:"45000"};
+    $('priceWebLanding').value = w.landing || '';
+    $('priceWebToko').value = w.toko || '';
+    $('priceWebPort').value = w.portfolio || '';
+    $('priceWebComp').value = w.company || '';
+  });
+
+  // WA
+  db.ref('web/nomorWA').on('value', snap=>{
+    const v = snap.val() || '6287867162459';
+    $('waNumber').value = v;
+  });
+
+  // portfolio
+  db.ref('web/portfolio').on('value', snap=>{
+    const data = snap.val() || {};
+    const list = $('portfolioList'); list.innerHTML = '';
+    Object.keys(data).forEach(k=>{
+      const url = data[k];
+      const item = document.createElement('div'); item.className='list-item';
+      item.innerHTML = `<div style="display:flex;gap:8px;align-items:center">
+        <img src="${url}" width="64" style="border-radius:6px;object-fit:cover">
+        <div style="flex:1;color:var(--muted);word-break:break-all">${url}</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <button class="ghost" onclick="removePortfolio('${k}')">Hapus</button>
+          <a class="ghost" href="${url}" target="_blank">Buka</a>
+        </div>
+      </div>`;
+      list.appendChild(item);
+    });
+    if(Object.keys(data).length === 0) list.innerHTML = '<div class="small" style="color:var(--muted)">Belum ada portfolio</div>';
+  });
+
+  // orders: 'orders' and 'ordersWebsite'
+  db.ref('orders').on('value', snap => renderOrders(snap.val(), 'orders'));
+  db.ref('ordersWebsite').on('value', snap => renderOrders(snap.val(), 'ordersWebsite'));
+
+  // store status
+  db.ref('web/statusToko').on('value', snap=>{
+    const v = snap.exists() ? snap.val() : '1';
+    $('storeVal').textContent = v;
+  });
+}
+
+/* ====== RENDER ORDERS ====== */
+function renderOrders(data, nodeName){
+  const out = $('ordersList');
+  // We'll append; to avoid duplication, re-query both nodes and then render combined.
+  Promise.all([db.ref('orders').once('value'), db.ref('ordersWebsite').once('value')]).then(([a,b])=>{
+    const all = Object.assign({}, a.val() || {}, b.val() || {});
+    out.innerHTML = '';
+    const ids = Object.keys(all || {}).reverse();
+    if(ids.length === 0){ out.innerHTML = '<div class="small" style="color:var(--muted)">Belum ada order</div>'; return; }
+    ids.forEach(id=>{
+      const o = all[id];
+      const item = document.createElement('div'); item.className='list-item';
+      item.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <b>${o.nama || o.brand || '-'}</b>
+          <div class="small" style="color:var(--muted)">${o.type || (o.paket? 'website': 'order')}</div>
+          <div class="small" style="margin-top:6px;color:var(--muted);word-break:break-word">${o.detail || o.fitur || o.catatan || ''}</div>
+          <div class="small" style="color:var(--muted);margin-top:6px">${o.waktu ? new Date(o.waktu).toLocaleString() : '-'}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="ghost" onclick='alert(JSON.stringify(${JSON.stringify(o)},null,2))'>Detail</button>
+          <button class="ghost" onclick="deleteOrderPrompt('${id}')">Hapus</button>
+        </div>
+      </div>`;
+      out.appendChild(item);
+    });
+  });
+}
+
+/* ====== CRUD ACTIONS ====== */
+// Logo prices
+$('saveLogo').addEventListener('click', ()=> {
+  if(isDemo()) return alert('Demo mode - tidak bisa menyimpan');
+  const obj = { express: String($('priceLogoExp').value||'2000'), basic: String($('priceLogoBasic').value||'5000'), premium: String($('priceLogoPrem').value||'7000') };
+  db.ref('web/harga').set(obj).then(()=>alert('Harga logo disimpan'));
+});
+$('resetLogo').addEventListener('click', ()=> {
+  if(isDemo()) return alert('Demo mode'); db.ref('web/harga').set({express:"2000",basic:"5000",premium:"7000"}).then(()=>alert('Reset selesai'));
+});
+
+// Web prices
+$('saveWeb').addEventListener('click', ()=> {
+  if(isDemo()) return alert('Demo mode - tidak bisa menyimpan');
+  const obj = { landing: String($('priceWebLanding').value||'20000'), toko: String($('priceWebToko').value||'50000'), portfolio: String($('priceWebPort').value||'30000'), company: String($('priceWebComp').value||'45000') };
+  db.ref('web/hargaWeb').set(obj).then(()=>alert('Harga website disimpan'));
+});
+$('resetWeb').addEventListener('click', ()=> { if(isDemo()) return alert('Demo mode'); db.ref('web/hargaWeb').set({landing:"20000",toko:"50000",portfolio:"30000",company:"45000"}).then(()=>alert('Reset selesai')); });
+
+// WA & store
+$('saveWA').addEventListener('click', ()=> {
+  if(isDemo()) return alert('Demo mode'); const v = $('waNumber').value.trim(); if(!v) return alert('Isi nomor'); db.ref('web/nomorWA').set(v).then(()=>alert('Nomor disimpan'));
+});
+$('testWA').addEventListener('click', ()=> { const v = $('waNumber').value.trim() || '6287867162459'; window.open('https://wa.me/' + v, '_blank'); });
+$('openStore').addEventListener('click', ()=> { if(isDemo()) return alert('Demo mode'); db.ref('web/statusToko').set('1').then(()=>alert('Toko dibuka')); });
+$('closeStore').addEventListener('click', ()=> { if(isDemo()) return alert('Demo mode'); db.ref('web/statusToko').set('0').then(()=>alert('Toko ditutup')); });
+
+// Portfolio
+$('addPortfolio').addEventListener('click', ()=> {
+  if(isDemo()) return alert('Demo mode - tidak bisa menyimpan');
+  const url = $('portfolioUrl').value.trim(); if(!url) return alert('Isi URL'); db.ref('web/portfolio').push(url).then(()=>{ $('portfolioUrl').value=''; alert('Ditambahkan'); });
+});
+$('clearPortfolio').addEventListener('click', ()=> {
+  if(isDemo()) return alert('Demo mode'); if(!confirm('Hapus semua portfolio?')) return; db.ref('web/portfolio').remove().then(()=>alert('Dihapus'));
+});
+function removePortfolio(key){ if(isDemo()) return alert('Demo mode'); if(!confirm('Hapus portfolio?')) return; db.ref('web/portfolio/'+key).remove().then(()=>alert('Dihapus')); }
+
+// Orders export / delete
+$('exportOrders').addEventListener('click', ()=> {
+  Promise.all([db.ref('orders').once('value'), db.ref('ordersWebsite').once('value')]).then(([a,b])=>{
+    const out = { orders: a.val()||{}, ordersWebsite: b.val()||{} };
+    const blob = new Blob([JSON.stringify(out,null,2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const ael = document.createElement('a'); ael.href = url; ael.download = 'orders_export.json'; ael.click(); URL.revokeObjectURL(url);
+  });
+});
+$('clearOrders').addEventListener('click', ()=> {
+  if(isDemo()) return alert('Demo mode'); if(!confirm('Hapus semua orders?')) return; Promise.all([db.ref('orders').remove(), db.ref('ordersWebsite').remove()]).then(()=>alert('Semua orders dihapus'));
+});
+function deleteOrderPrompt(id){ if(isDemo()) return alert('Demo mode'); if(!confirm('Hapus order ini?')) return; db.ref('orders/'+id).remove().then(()=>alert('Dihapus')); }
+function deleteOrderWebsite(id){ if(isDemo()) return alert('Demo mode'); if(!confirm('Hapus order website ini?')) return; db.ref('ordersWebsite/'+id).remove().then(()=>alert('Dihapus')); }
+
+// Debug preview update (optional)
+setInterval(()=> {
+  Promise.all([db.ref('web').once('value'), db.ref('orders').once('value'), db.ref('ordersWebsite').once('value')]).then(([a,b,c])=>{
+    const out = { web: a.val() || {}, orders: b.val() || {}, ordersWebsite: c.val() || {} };
+    $('debugJson').textContent = JSON.stringify(out, null, 2);
+  });
+}, 3000);
+
+</script>
+</body>
+</html>
